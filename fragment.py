@@ -1,7 +1,8 @@
 import json
 import time
 import math
-from queue import LifoQueue
+# from queue import LifoQueue
+from collections import deque
 
 import numpy as np
 import cv2
@@ -262,7 +263,8 @@ class Fragment(BaseFragment):
         self.gpoints = np.zeros((0,3), dtype=np.float32)
 
         # History of gpoints, for undo functionality
-        self.gpoints_history : LifoQueue = LifoQueue(100)
+        # self.gpoints_history : LifoQueue = LifoQueue(100)
+        self.gpoints_history = deque(maxlen=50)
 
     def createView(self, project_view):
         return FragmentView(project_view, self)
@@ -1776,10 +1778,31 @@ class FragmentView(BaseFragmentView):
 
     def pushFragmentState(self):
         """Push the current list of gpoints onto the stack in preparation for changing gpoints."""
+        # Currently disabled because of crash when 
+        # undoing the initial creation of the fragment
+        return
+
+        gpoints_copy = np.copy(self.fragment.gpoints)
+        self.fragment.gpoints_history.append(gpoints_copy)
+
+    def popFragmentState(self):
+        """Replace current gpoints with top of the stack, and update."""
+        # Currently disabled because of crash when 
+        # undoing the initial creation of the fragment
+        return
+
+        hist_size =  len(self.fragment.gpoints_history)
+        if hist_size > 0:
+            self.fragment.gpoints = self.fragment.gpoints_history.pop()
+            self.fragment.notifyModified()
+            self.setLocalPoints(True, False)
+
+    def pushFragmentStateOld(self):
+        """Push the current list of gpoints onto the stack in preparation for changing gpoints."""
         gpoints_copy = np.copy(self.fragment.gpoints)
         self.fragment.gpoints_history.put(gpoints_copy)
 
-    def popFragmentState(self):
+    def popFragmentStateOld(self):
         """Replace current gpoints with top of the stack, and update."""
         hist_size=  self.fragment.gpoints_history.qsize()
         if hist_size > 0:
